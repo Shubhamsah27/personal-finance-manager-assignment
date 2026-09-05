@@ -14,7 +14,9 @@ import java.util.Map;
 public class SecurityConfig{
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean SecurityFilterChain security(HttpSecurity http,ObjectMapper mapper)throws Exception{
-  http.csrf(c->c.disable()).cors(c->{}).authorizeHttpRequests(a->a.requestMatchers("/api/auth/register","/api/auth/login","/api/health").permitAll().anyRequest().authenticated())
+  http.csrf(c->c.disable()).cors(c->{}).authorizeHttpRequests(a->a
+   .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/api/auth/register", "/api/auth/login", "/api/health").permitAll()
+   .anyRequest().authenticated())
    .exceptionHandling(e->e.authenticationEntryPoint((req,res,x)->write(mapper,res,401,"Authentication required",req.getRequestURI())))
    .logout(l->l.disable());
   return http.build();
