@@ -1,7 +1,8 @@
-﻿services:
+services:
   - type: web
     name: folio-finance-manager
     runtime: docker
+    plan: free
     rootDir: .
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
@@ -10,4 +11,3 @@
         value: prod
       - key: SESSION_COOKIE_SECURE
         value: "true"
-
