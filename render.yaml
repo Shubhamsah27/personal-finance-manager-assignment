@@ -1,0 +1,13 @@
+﻿services:
+  - type: web
+    name: folio-finance-manager
+    runtime: docker
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+
