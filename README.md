@@ -36,46 +36,47 @@ Folio brings transactions, custom categories, savings goals, and financial repor
 ## Architecture
 
 ```mermaid
-flowchart TB
-    classDef user fill:#EEF2FF,stroke:#6366F1,color:#312E81,stroke-width:2px
-    classDef frontend fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px
-    classDef security fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
-    classDef service fill:#ECFDF5,stroke:#10B981,color:#064E3B,stroke-width:2px
-    classDef data fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-width:2px
-    classDef delivery fill:#F1F5F9,stroke:#475569,color:#0F172A,stroke-width:2px
+flowchart TD
+    classDef event fill:#EEF2FF,stroke:#6366F1,color:#312E81,stroke-width:2px
+    classDef diagnosis fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px
+    classDef decision fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+    classDef action fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-width:2px
+    classDef success fill:#ECFDF5,stroke:#10B981,color:#064E3B,stroke-width:2px
+    classDef neutral fill:#F1F5F9,stroke:#475569,color:#0F172A,stroke-width:2px
 
-    USER([User]):::user
+    A["Payment event<br/>Razorpay-shaped failure"]:::event --> B[Diagnosis]:::diagnosis
+    B -->|rule table matches| C[Failure class]:::diagnosis
+    B -->|evidence ambiguous| AI["AI interpreter<br/>constrained to known classes"]:::diagnosis
+    AI --> C
+    AI -.->|unrecognised output| F[Safe fallback class]:::neutral
+    F --> C
 
-    subgraph CLIENT["Presentation layer"]
-        UI["React 19 + TypeScript<br/>Vite · React Three Fiber"]:::frontend
-    end
+    C --> D["Recovery plan<br/>one supported action"]:::event
+    D --> E["Expected value<br/>conversion, channel cost, fatigue"]:::event
+    E --> G{"Safety guard<br/>deterministic"}:::decision
 
-    subgraph SERVER["Spring Boot application"]
-        SEC["Spring Security<br/>Session authentication"]:::security
-        API["REST controllers<br/>Validation · JSON errors"]:::service
-        DOMAIN["Domain services<br/>Transactions · Categories<br/>Goals · Reports"]:::service
-        JPA["Spring Data JPA<br/>User-scoped repositories"]:::data
-    end
+    G -->|blocked| X["No external effect<br/>reason recorded"]:::neutral
+    G -->|review| H[Human approval]:::decision
+    G -->|automatic| I
+    H -->|approved| I["Durable action<br/>unique action_key"]:::action
+    H -->|rejected| X
 
-    DB[("H2 database<br/>File-backed storage")]:::data
-    GITHUB["GitHub<br/>main branch"]:::delivery
-    RENDER["Render<br/>Docker web service"]:::delivery
-    HEALTH["Health monitor<br/>GET /api/health"]:::delivery
+    I --> J["Atomic claim<br/>ready to executing"]:::action
+    J --> K[Provider call]:::action
+    K -->|2xx| L[Succeeded]:::success
+    K -->|definite 4xx| M[Failed]:::action
+    K -->|timeout, 5xx, 429| N[Outcome unknown]:::decision
+    N --> O["Reconcile by reference_id"]:::decision
+    O -->|found| L
+    O -->|not found| M
+    O -->|still unknown| P["Exception<br/>manual resolution"]:::action
 
-    USER -->|HTTPS| UI
-    UI -->|JSON + JSESSIONID| SEC
-    SEC --> API
-    API --> DOMAIN
-    DOMAIN --> JPA
-    JPA --> DB
-
-    GITHUB -->|Blueprint deploy| RENDER
-    RENDER -. hosts .-> CLIENT
-    RENDER -. runs .-> SERVER
-    HEALTH --> API
+    L --> Q[Outcome and attribution]:::success
+    M --> Q
+    X --> Q
 ```
 
-The production image compiles React first, then embeds the generated assets inside the Spring Boot JAR. The browser and API therefore share one origin, avoiding cross-origin session-cookie problems.
+The flow keeps AI interpretation constrained, applies deterministic safety checks before any external effect, and reconciles uncertain provider outcomes before assigning a final result.
 
 ## Technology
 
