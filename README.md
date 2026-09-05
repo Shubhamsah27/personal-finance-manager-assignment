@@ -37,46 +37,45 @@ Folio brings transactions, custom categories, savings goals, and financial repor
 
 ```mermaid
 flowchart TD
-    classDef event fill:#EEF2FF,stroke:#6366F1,color:#312E81,stroke-width:2px
-    classDef diagnosis fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px
-    classDef decision fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
-    classDef action fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-width:2px
-    classDef success fill:#ECFDF5,stroke:#10B981,color:#064E3B,stroke-width:2px
-    classDef neutral fill:#F1F5F9,stroke:#475569,color:#0F172A,stroke-width:2px
+    classDef user fill:#EEF2FF,stroke:#6366F1,color:#312E81,stroke-width:2px
+    classDef frontend fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px
+    classDef security fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+    classDef domain fill:#ECFDF5,stroke:#10B981,color:#064E3B,stroke-width:2px
+    classDef data fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-width:2px
+    classDef delivery fill:#F1F5F9,stroke:#475569,color:#0F172A,stroke-width:2px
 
-    A["Payment event<br/>Razorpay-shaped failure"]:::event --> B[Diagnosis]:::diagnosis
-    B -->|rule table matches| C[Failure class]:::diagnosis
-    B -->|evidence ambiguous| AI["AI interpreter<br/>constrained to known classes"]:::diagnosis
-    AI --> C
-    AI -.->|unrecognised output| F[Safe fallback class]:::neutral
-    F --> C
+    A([User]):::user --> B["Folio dashboard<br/>React · TypeScript · Three.js"]:::frontend
+    B -->|register or sign in| C["Authentication API<br/>Spring Security"]:::security
+    C -->|valid credentials| D["Secure session<br/>JSESSIONID cookie"]:::security
+    C -->|invalid request| X["Consistent JSON error<br/>status · message · time · path"]:::delivery
 
-    C --> D["Recovery plan<br/>one supported action"]:::event
-    D --> E["Expected value<br/>conversion, channel cost, fatigue"]:::event
-    E --> G{"Safety guard<br/>deterministic"}:::decision
+    D --> E{"Choose a workspace action"}:::frontend
 
-    G -->|blocked| X["No external effect<br/>reason recorded"]:::neutral
-    G -->|review| H[Human approval]:::decision
-    G -->|automatic| I
-    H -->|approved| I["Durable action<br/>unique action_key"]:::action
-    H -->|rejected| X
+    E -->|record income or expense| F["Transactions<br/>create · list · update · soft delete"]:::domain
+    E -->|organize spending| G["Categories<br/>defaults · custom categories"]:::domain
+    E -->|plan savings| H["Savings goals<br/>target · deadline · progress"]:::domain
+    E -->|understand finances| I["Reports<br/>monthly · yearly summaries"]:::domain
 
-    I --> J["Atomic claim<br/>ready to executing"]:::action
-    J --> K[Provider call]:::action
-    K -->|2xx| L[Succeeded]:::success
-    K -->|definite 4xx| M[Failed]:::action
-    K -->|timeout, 5xx, 429| N[Outcome unknown]:::decision
-    N --> O["Reconcile by reference_id"]:::decision
-    O -->|found| L
-    O -->|not found| M
-    O -->|still unknown| P["Exception<br/>manual resolution"]:::action
+    F --> J["Ownership and validation<br/>authenticated user scope"]:::security
+    G --> J
+    H --> J
+    I --> J
 
-    L --> Q[Outcome and attribution]:::success
-    M --> Q
-    X --> Q
+    J --> K["Spring Data JPA<br/>repositories"]:::data
+    K --> L[("H2 finance database<br/>users · transactions · goals · categories")]:::data
+
+    L -->|current records| M["Service calculations<br/>balance · totals · goal progress"]:::domain
+    M --> N["JSON API response"]:::domain
+    N --> B
+
+    O["GitHub<br/>main branch"]:::delivery -->|Render Blueprint| P["Multi-stage Docker build"]:::delivery
+    P --> Q["React static bundle<br/>embedded in Spring Boot JAR"]:::delivery
+    Q --> R["Render free web service"]:::delivery
+    R -.->|serves| B
+    R -->|health check| S["GET /api/health"]:::domain
 ```
 
-The flow keeps AI interpretation constrained, applies deterministic safety checks before any external effect, and reconciles uncertain provider outcomes before assigning a final result.
+A request starts in the React dashboard, passes through session authentication and user-scoped domain services, and is persisted through Spring Data JPA. Reports and goal progress are recalculated from the user's current transaction data. In production, a multi-stage Docker build embeds the frontend in the Spring Boot JAR so the UI and API share one secure origin.
 
 ## Technology
 
